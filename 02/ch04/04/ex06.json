@@ -52,7 +52,9 @@
 								"httpd": []
 					  		}
 						},
-
+						"source": {
+							"/var/www/html": ""
+						},
 						"services": {
 							"sysvinit": {
 								"httpd": {
