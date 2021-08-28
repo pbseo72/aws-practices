@@ -1,0 +1,136 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+	"Description": "Deploy Node Application of myapp on EC2 instance of the Amazon Linux 64bit AMI",
+	"Parameters": {
+		"KeyName": {
+			"Description": "the Key Pair for Accessing to EC2 Instance",
+			"Type": "String"
+		},
+		"InstanceType": {
+			"Description": "One of the Possible Instance Types",
+			"Type": "String",
+			"Default": "t2.micro",
+			"AllowedValues": ["t2.micro", "t2.small", "t2.medium"]
+		},
+		"VPC": {
+			"Description": "VPC Id",
+			"Type": "AWS::EC2::VPC::Id"
+		}		       
+	},
+	"Resources": {
+		"SecurityGroup": {
+			"Type": "AWS::EC2::SecurityGroup",
+			"Properties": {
+				"GroupDescription": "My Security Group",
+				"GroupName": "MySecurityGroup",
+				"VpcId": {
+					"Ref": "VPC"
+				},
+				"SecurityGroupIngress": [{
+					"CidrIp": "0.0.0.0/0",
+					"FromPort": 22,
+					"IpProtocol": "tcp",
+					"ToPort": 22
+				}, {
+					"CidrIp": "0.0.0.0/0",
+					"FromPort": 8080,
+					"IpProtocol": "tcp",
+					"ToPort": 8080
+				}]
+			}
+		}, 		
+		"NodeServerInstance": {
+			"Type": "AWS::EC2::Instance",
+			"Metadata": {
+				"AWS::CloudFormation::Init": {
+					"configSets": {
+						"config01": ["Install"]
+					},					
+					"Install": {
+						"packages": {
+							"yum": {
+								"nodejs" : []
+					  		}
+						},
+
+						"files": {
+							"/usr/lib/systemd/system/node-server.service": {
+								"content": {
+									"Fn::Join": ["", [
+										"[Unit]\n",
+										"After=network.target\n",
+										"\n",
+										"[Service]\n",
+										"ExecStart=/usr/bin/node /usr/local/myapp/index.js\n",
+										"Restart=always\n",
+										"StandardOutput=syslog\n",
+										"TimeoutSec=90\n",
+										"SyslogIdentifier=node-server\n",
+										"User=root\n",
+										"Group=root\n",
+										"Environment=PATH=/usr/bin:/usr/local/bin\n",
+										"\n",
+										"[Install]\n",
+										"WantedBy=multi-user.target\n"
+									]]
+								},
+								"mode": "000644",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+
+						"services": {
+							"sysvinit": {
+								"node-server": {
+									"enabled": "true",
+									"ensureRunning": "true"
+								}
+							}
+						}
+					}
+				}
+			},
+			"Properties": {
+				"ImageId": "ami-07464b2b9929898f8",
+				"InstanceType": {
+					"Ref": "InstanceType"
+				},
+				"SecurityGroupIds" : [{
+					"Fn::GetAtt" : ["SecurityGroup", "GroupId"]
+				}],				
+				"KeyName": {
+					"Ref": "KeyName"
+				},
+				"UserData": {
+					"Fn::Base64": {
+						"Fn::Join": [ "", [
+							"#!/bin/bash -ex\n",
+							"yum install -y aws-cfn-bootstrap\n",
+							"curl --silent --location https://rpm.nodesource.com/setup_14.x | bash - \n",
+							"/opt/aws/bin/cfn-init -v ",
+							" --stack ", {"Ref": "AWS::StackName"},
+							" --resource NodeServerInstance ",
+							" --configsets config01 ",
+							" --region ", {"Ref": "AWS::Region"}, "\n"
+						]]
+					}	
+				}
+			}
+		}
+	},
+	"Outputs": {
+		"InstanceId": {
+			"Description": "the Instance's Id of EC2 Instance Created Newly",
+			"Value": {
+				"Ref": "NodeServerInstance"
+			}
+		},
+		"PublicName": {
+			"Description": "Public Name (Connect via SSH as User ec2-user)",
+			"Value": {
+				"Fn::GetAtt": ["NodeServerInstance", "PublicDnsName"]
+			}
+		}
+	}
+}
