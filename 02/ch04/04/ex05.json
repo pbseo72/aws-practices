@@ -53,11 +53,12 @@
 					  		}
 						},
 						"files": {
-							"/var/www/html/index.html": "",
-							"mode": "000644",
-							"owner": "apache",
-							"group": "apache"
-
+							"/var/www/html/index.html": {
+								"source": "https://raw.githubusercontent.com/pbseo72/aws-practices/main/02/ch04/04/index.html",
+								"mode": "000644",
+								"owner": "apache",
+								"group": "apache"
+							}
 						},
 						"services": {
 							"sysvinit": {
