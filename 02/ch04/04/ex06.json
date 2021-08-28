@@ -53,7 +53,7 @@
 					  		}
 						},
 						"source": {
-							"/var/www/html": ""
+							"/var/www/html": "https://raw.githubusercontent.com/pbseo72/aws-practices/main/02/ch04/04/mysite.tar.gz"
 						},
 						"services": {
 							"sysvinit": {
