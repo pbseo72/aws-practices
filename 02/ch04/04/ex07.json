@@ -52,6 +52,9 @@
 								"httpd": []
 					  		}
 						},
+						"sources": {
+							"/var/wwww/html": "https://github.com/pbseo72/mysite/tarball/main"
+						},
 						"services": {
 							"sysvinit": {
 								"httpd": {
