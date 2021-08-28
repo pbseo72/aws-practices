@@ -1,0 +1,9 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Sid": "1",
+    "Effect": "Allow",
+    "Action": ["ec2:TerminateInstance"],
+    "Resource": ["arn:aws:ec2:ap-northeast-2:078619537302:instance/i-3dd4f0189"]
+  }]
+}
