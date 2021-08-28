@@ -52,7 +52,9 @@
 								"nodejs" : []
 					  		}
 						},
-
+						"source": {
+							"/usr/local/myapp": ""
+						},
 						"files": {
 							"/usr/lib/systemd/system/node-server.service": {
 								"content": {
