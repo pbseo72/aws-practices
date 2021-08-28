@@ -52,7 +52,9 @@
 								"nodejs" : []
 					  		}
 						},
-
+						"sources": {
+							"/usr/local/myapp": "https://github.com/pbseo72/myapp-navigational/tarball/master"
+						},
 						"files": {
 							"/usr/lib/systemd/system/node-server.service": {
 								"content": {
@@ -79,7 +81,12 @@
 								"group": "root"
 							}
 						},
-
+						"commands": {
+							"01_install_dependency": {
+								"command": "/usr/bin/npm install",
+								"cwd": "/usr/local/myapp"
+							}
+						},
 						"services": {
 							"sysvinit": {
 								"node-server": {
