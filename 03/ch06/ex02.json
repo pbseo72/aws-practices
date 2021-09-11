@@ -479,7 +479,7 @@
 					  		}
 						},
 						"sources": {
-							"/usr/local/myapp": "https://github.com/kickscar/myapp-ex02/tarball/main"
+							"/usr/local/myapp": "https://github.com/pbseo72/myapp-ex02/tarball/main"
 						},
 						"files": {
 							"/usr/local/myapp/config/app.env": {
