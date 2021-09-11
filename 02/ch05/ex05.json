@@ -46,6 +46,14 @@
         }],
         "KeyName": {
           "Ref": "KeyName"
+        },
+        "Userdata": {
+          "Fn:Base64": {
+            "Fn::Join": ["", [
+              "#!/bin/bash -ex\n",
+              "INSTANCEID"
+            ]]
+          }
         }
       }
     }

@@ -1,0 +1,609 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+	"Description": "Deploy Node Application(myapp) on EC2 & RDS",
+	"Parameters": {
+		"KeyName": {
+			"Description": "the Key Pair for Accessing to EC2 Instance",
+			"Type": "String"
+		},
+		"InstanceType": {
+			"Description": "One of the Possible Instance Types",
+			"Type": "String",
+			"Default": "t2.micro",
+			"AllowedValues": ["t2.micro", "t2.small", "t2.medium"]
+		},
+		"ServicePort": {
+			"Description": "Node Server Listen Port",
+			"Type": "Number"
+		},
+		"DBName": {
+			"Description": "MySQl DB Name of DBInstance",
+			"Type": "String"
+		},
+		"DBUserName": {
+			"Description": "MySQl DB User Name of DBInstance",
+			"Type": "String"
+		},
+		"DBUserPassword": {
+			"Description": "MySQl DB User Password of DBInstance",
+			"Type": "String"
+		}
+	},
+	"Resources": {
+
+		"VPC": {
+			"Type": "AWS::EC2::VPC",
+			"Properties": {
+				"CidrBlock": "10.0.0.0/16",
+				"EnableDnsHostnames": "true"
+			}
+		},
+		"InternetGateway": {
+			"Type": "AWS::EC2::InternetGateway",
+			"Properties": {}
+		},
+		"VPCGatewayAttachment": {
+			"Type": "AWS::EC2::VPCGatewayAttachment",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPC"
+				},
+				"InternetGatewayId": {
+					"Ref": "InternetGateway"
+				}
+			}
+		},
+		"VPCSecurityGroup": {
+			"Type": "AWS::EC2::SecurityGroup",
+			"Properties": {
+				"GroupDescription": "VPC Security Group",
+				"GroupName": "VPCSecurityGroup",
+				"VpcId": {
+					"Ref": "VPC"
+				},
+				"SecurityGroupIngress": [
+					{
+						"IpProtocol": "-1",
+						"FromPort": "-1",
+						"ToPort": "-1",
+						"CidrIp": "0.0.0.0/0"
+					}
+				],
+				"SecurityGroupEgress": [
+					{
+						"IpProtocol": "-1",
+						"FromPort": "-1",
+						"ToPort": "-1",
+						"CidrIp": "0.0.0.0/0"
+					}
+				]
+			}
+		},
+
+
+		"Subnet01": {
+			"Type": "AWS::EC2::Subnet",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPC"
+				},
+				"AvailabilityZone": "ap-northeast-2a",
+				"CidrBlock": "10.0.1.0/24"
+			}
+		},
+		"RouteTable01": {
+			"Type": "AWS::EC2::RouteTable",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPC"
+				}
+			}
+		},
+		"Subnet01RouteTable01Association": {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Properties": {
+				"SubnetId": {
+					"Ref": "Subnet01"
+				},
+				"RouteTableId": {
+					"Ref": "RouteTable01"
+				}
+			}
+		},
+		"RouteTable01Route": {
+			"Type": "AWS::EC2::Route",
+			"Properties": {
+				"RouteTableId": {
+					"Ref": "RouteTable01"
+				},
+				"DestinationCidrBlock": "0.0.0.0/0",
+				"GatewayId": {
+					"Ref": "InternetGateway"
+				}
+			},
+			"DependsOn": "VPCGatewayAttachment"
+		},
+		"NetworkAcl01": {
+			"Type": "AWS::EC2::NetworkAcl",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPC"
+				}
+			}
+		},
+		"Subnet01NetworkAcl01Association": {
+			"Type": "AWS::EC2::SubnetNetworkAclAssociation",
+			"Properties": {
+				"SubnetId": {
+					"Ref": "Subnet01"
+				},
+				"NetworkAclId": {
+					"Ref": "NetworkAcl01"
+				}
+			}
+		},
+		"NetworkAcl01Entry01": {
+			"Type": "AWS::EC2::NetworkAclEntry",
+			"Properties": {
+				"NetworkAclId": {
+					"Ref": "NetworkAcl01"
+				},
+				"RuleNumber": "100",
+				"Protocol": "6",
+				"PortRange": {
+					"From": "22",
+					"To": "22"
+				},
+				"RuleAction": "allow",
+				"Egress": "false",
+				"CidrBlock": "0.0.0.0/0"
+			}
+		},
+		"NetworkAcl01Entry02": {
+			"Type": "AWS::EC2::NetworkAclEntry",
+			"Properties": {
+				"NetworkAclId": {
+					"Ref": "NetworkAcl01"
+				},
+				"RuleNumber": "200",
+				"Protocol": "6",
+				"PortRange": {
+					"From": "1024",
+					"To": "65535"
+				},
+				"RuleAction": "allow",
+				"Egress": "true",
+				"CidrBlock": "0.0.0.0/0"
+			}
+		},
+		"NetworkAcl01Entry03": {
+			"Type": "AWS::EC2::NetworkAclEntry",
+			"Properties": {
+				"NetworkAclId": {
+					"Ref": "NetworkAcl01"
+				},
+				"RuleNumber": "300",
+				"Protocol": "6",
+				"PortRange": {
+					"From": {"Ref" : "ServicePort"},
+					"To": {"Ref" : "ServicePort"}
+				},
+				"RuleAction": "allow",
+				"Egress": "false",
+				"CidrBlock": "0.0.0.0/0"
+			}
+		},
+		"NetworkAcl01Entry04": {
+			"Type": "AWS::EC2::NetworkAclEntry",
+			"Properties": {
+				"NetworkAclId": {
+					"Ref": "NetworkAcl01"
+				},
+				"RuleNumber": "400",
+				"Protocol": "6",
+				"PortRange": {
+					"From": "1024",
+					"To": "65535"
+				},
+				"RuleAction": "allow",
+				"Egress": "true",
+				"CidrBlock": "0.0.0.0/0"
+			}
+		},
+		"NetworkAcl01Entry05": {
+			"Type": "AWS::EC2::NetworkAclEntry",
+			"Properties": {
+				"NetworkAclId": {"Ref": "NetworkAcl01"},
+				"RuleNumber": "500",
+				"Protocol": "6",
+				"PortRange": {
+					"From": "0",
+					"To": "65535"
+				},
+				"RuleAction": "allow",
+				"Egress": "true",
+				"CidrBlock": "0.0.0.0/0"
+			}
+		},
+		"NetworkAcl01Entry06": {
+			"Type": "AWS::EC2::NetworkAclEntry",
+			"Properties": {
+				"NetworkAclId": {"Ref": "NetworkAcl01"},
+				"RuleNumber": "600",
+				"Protocol": "6",
+				"PortRange": {
+					"From": "1024",
+					"To": "65535"
+				},
+				"RuleAction": "allow",
+				"Egress": "false",
+				"CidrBlock": "0.0.0.0/0"
+			}
+		},
+
+
+
+
+
+		"Subnet02": {
+			"Type": "AWS::EC2::Subnet",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPC"
+				},
+				"AvailabilityZone": "ap-northeast-2a",
+				"CidrBlock": "10.0.2.0/24"
+			}
+		},
+		"RouteTable02": {
+			"Type": "AWS::EC2::RouteTable",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPC"
+				}
+			}
+		},
+		"Subnet02RouteTable02Association": {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Properties": {
+				"SubnetId": {
+					"Ref": "Subnet02"
+				},
+				"RouteTableId": {
+					"Ref": "RouteTable02"
+				}
+			}
+		},
+		"RouteTable02Route": {
+			"Type": "AWS::EC2::Route",
+			"Properties": {
+				"RouteTableId": {
+					"Ref": "RouteTable02"
+				},
+				"DestinationCidrBlock": "0.0.0.0/0",
+				"GatewayId": {
+					"Ref": "InternetGateway"
+				}
+			},
+			"DependsOn": "VPCGatewayAttachment"
+		},
+		"NetworkAcl02": {
+			"Type": "AWS::EC2::NetworkAcl",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPC"
+				}
+			}
+		},
+		"Subnet02NetworkAcl02Association": {
+			"Type": "AWS::EC2::SubnetNetworkAclAssociation",
+			"Properties": {
+				"SubnetId": {
+					"Ref": "Subnet02"
+				},
+				"NetworkAclId": {
+					"Ref": "NetworkAcl02"
+				}
+			}
+		},
+		"NetworkAcl02Entry01": {
+			"Type": "AWS::EC2::NetworkAclEntry",
+			"Properties": {
+				"NetworkAclId": {
+					"Ref": "NetworkAcl02"
+				},
+				"RuleNumber": "100",
+				"Protocol": "6",
+				"PortRange": {
+					"From": "3306",
+					"To": "3306"
+				},
+				"RuleAction": "allow",
+				"Egress": "false",
+				"CidrBlock": "0.0.0.0/0"
+			}
+		},
+		"NetworkAcl02Entry02": {
+			"Type": "AWS::EC2::NetworkAclEntry",
+			"Properties": {
+				"NetworkAclId": {
+					"Ref": "NetworkAcl02"
+				},
+				"RuleNumber": "200",
+				"Protocol": "6",
+				"PortRange": {
+					"From": "1024",
+					"To": "65535"
+				},
+				"RuleAction": "allow",
+				"Egress": "true",
+				"CidrBlock": "0.0.0.0/0"
+			}
+		},
+
+
+		"Subnet03": {
+			"Type": "AWS::EC2::Subnet",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPC"
+				},
+				"AvailabilityZone": "ap-northeast-2c",
+				"CidrBlock": "10.0.3.0/24"
+			}
+		},
+		"RouteTable03": {
+			"Type": "AWS::EC2::RouteTable",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPC"
+				}
+			}
+		},
+		"Subnet03RouteTable03Association": {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Properties": {
+				"SubnetId": {
+					"Ref": "Subnet03"
+				},
+				"RouteTableId": {
+					"Ref": "RouteTable03"
+				}
+			}
+		},
+		"RouteTable03Route": {
+			"Type": "AWS::EC2::Route",
+			"Properties": {
+				"RouteTableId": {
+					"Ref": "RouteTable03"
+				},
+				"DestinationCidrBlock": "0.0.0.0/0",
+				"GatewayId": {
+					"Ref": "InternetGateway"
+				}
+			},
+			"DependsOn": "VPCGatewayAttachment"
+		},
+		"NetworkAcl03": {
+			"Type": "AWS::EC2::NetworkAcl",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPC"
+				}
+			}
+		},
+		"Subnet03NetworkAcl03Association": {
+			"Type": "AWS::EC2::SubnetNetworkAclAssociation",
+			"Properties": {
+				"SubnetId": {
+					"Ref": "Subnet03"
+				},
+				"NetworkAclId": {
+					"Ref": "NetworkAcl03"
+				}
+			}
+		},
+		"NetworkAcl03Entry01": {
+			"Type": "AWS::EC2::NetworkAclEntry",
+			"Properties": {
+				"NetworkAclId": {
+					"Ref": "NetworkAcl03"
+				},
+				"RuleNumber": "100",
+				"Protocol": "6",
+				"PortRange": {
+					"From": "3306",
+					"To": "3306"
+				},
+				"RuleAction": "allow",
+				"Egress": "false",
+				"CidrBlock": "0.0.0.0/0"
+			}
+		},
+		"NetworkAcl03Entry02": {
+			"Type": "AWS::EC2::NetworkAclEntry",
+			"Properties": {
+				"NetworkAclId": {
+					"Ref": "NetworkAcl03"
+				},
+				"RuleNumber": "200",
+				"Protocol": "6",
+				"PortRange": {
+					"From": "1024",
+					"To": "65535"
+				},
+				"RuleAction": "allow",
+				"Egress": "true",
+				"CidrBlock": "0.0.0.0/0"
+			}
+		},
+
+
+
+		"DBSubnetGroup": {
+			"Type": "AWS::RDS::DBSubnetGroup",
+			"Properties": {
+				"DBSubnetGroupDescription": "Subnets available for the RDS DB Instance",
+				"SubnetIds": [{"Ref": "Subnet02"}, {"Ref": "Subnet03"}]
+			}
+		},
+
+
+		"Database": {
+			"Type": "AWS::RDS::DBInstance",
+			"DeletionPolicy": "Delete",
+			"Properties": {
+				"AllocatedStorage": "5",
+				"DBInstanceClass": "db.t2.micro",
+				"DBInstanceIdentifier": "myapp-db",
+				"DBName": {"Ref": "DBName"},
+				"Engine": "MySQL",
+				"MasterUsername": {"Ref": "DBUserName"},
+				"MasterUserPassword": {"Ref": "DBUserPassword"},
+				"PubliclyAccessible": true,
+				"DBSubnetGroupName": {"Ref": "DBSubnetGroup"},
+				"VPCSecurityGroups": [{"Ref": "VPCSecurityGroup"}]
+			}
+		},
+		"NodeServer": {
+			"Type": "AWS::EC2::Instance",
+			"Metadata": {
+				"AWS::CloudFormation::Init": {
+					"configSets": {
+						"config01": ["Install"]
+					},					
+					"Install": {
+						"packages": {
+							"yum": {
+								"nodejs" : []
+					  		}
+						},
+						"sources": {
+							"/usr/local/myapp": "https://github.com/kickscar/myapp-ex02/tarball/main"
+						},
+						"files": {
+							"/usr/local/myapp/config/app.env": {
+								"content": {
+									"Fn::Join": ["", [
+										"PROFILE=production\n",
+										"LOG_LOCATION=logs\n",
+										"PORT=", {"Ref" : "ServicePort"}, "\n",
+										"MULTER_TEMPORARY_STORE=multer-temporary-store\n",
+										"STATIC_RESOURCES_DIRECTORY=public\n"
+									]]
+								},
+								"mode": "000644",
+								"owner": "root",
+								"group": "root"
+							},
+							"/usr/local/myapp/config/db.env": {
+								"content": {
+									"Fn::Join": ["", [
+										"DB_HOST=", {"Fn::GetAtt": ["Database", "Endpoint.Address"]}, "\n",
+										"DB_NAME=", {"Ref": "DBName"}, "\n",
+										"DB_USER=", {"Ref" : "DBUserName"}, "\n",
+										"DB_PASSWORD=", {"Ref": "DBUserPassword"}, "\n",
+										"TABLE_CREATE_ALWAYS=false\n",
+										"TABLE_ALTER_SYNC=true\n"
+									]]
+								},
+								"mode": "000644",
+								"owner": "root",
+								"group": "root"
+							},
+							"/usr/lib/systemd/system/node-server.service": {
+								"content": {
+									"Fn::Join": ["", [
+										"[Unit]\n",
+										"After=network.target\n",
+										"\n",
+										"[Service]\n",
+										"ExecStart=/usr/bin/node /usr/local/myapp/index.js\n",
+										"Restart=always\n",
+										"StandardOutput=syslog\n",
+										"TimeoutSec=90\n",
+										"SyslogIdentifier=node-server\n",
+										"User=root\n",
+										"Group=root\n",
+										"Environment=PATH=/usr/bin:/usr/local/bin\n",
+										"\n",
+										"[Install]\n",
+										"WantedBy=multi-user.target\n"
+									]]
+								},
+								"mode": "000644",
+								"owner": "root",
+								"group": "root"
+							}
+						},
+						"commands": {
+							"01_install_dependency": {
+								"command": "/usr/bin/npm install",
+								"cwd": "/usr/local/myapp"
+							}
+						},
+						"services": {
+							"sysvinit": {
+								"node-server": {
+									"enabled": "true",
+									"ensureRunning": "true"
+								}
+							}
+						}
+					}
+				}
+			},
+			"Properties": {
+				"ImageId": "ami-07464b2b9929898f8",
+				"InstanceType": {
+					"Ref": "InstanceType"
+				},
+				"KeyName": {
+					"Ref": "KeyName"
+				},
+				"NetworkInterfaces": [{
+					"AssociatePublicIpAddress": "true",
+					"DeleteOnTermination": "true",
+					"SubnetId": {"Ref": "Subnet01"},
+					"DeviceIndex": "0",
+					"GroupSet": [{"Ref": "VPCSecurityGroup"}]
+				}],
+				"UserData": {
+					"Fn::Base64": {
+						"Fn::Join": [ "", [
+							"#!/bin/bash -ex\n",
+							"yum -y --security update\n",
+							"yum install -y aws-cfn-bootstrap\n",
+							"curl --silent --location https://rpm.nodesource.com/setup_14.x | bash - \n",
+							"/opt/aws/bin/cfn-init -v ",
+							" --stack ", {"Ref": "AWS::StackName"},
+							" --resource NodeServer ",
+							" --configsets config01 ",
+							" --region ", {"Ref": "AWS::Region"}, "\n"
+						]]
+					}	
+				}
+			}
+		}
+	},
+	"Outputs": {
+		"DatabaseEndpoint": {
+			"Description": "the RDS Endpoint of myapp MySql Created",
+			"Value": {
+				"Fn::GetAtt": ["Database", "Endpoint.Address"]
+			}
+		},
+		"NodeServerInstanceId": {
+			"Description": "the EC2 Instance Id of Node Server Created",
+			"Value": {
+				"Ref": "NodeServer"
+			}
+		},
+		"NodeServerPublicName": {
+			"Description": "Public Name(Connect via SSH as ec2-user Account)",
+			"Value": {
+				"Fn::GetAtt": ["NodeServer", "PublicDnsName"]
+			}
+		}
+	}
+}
