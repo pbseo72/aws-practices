@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>MyApp</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+<link href="/assets/css/gallery.css" rel="stylesheet" type="text/css">
+<link href="/assets/css/lightbox.css" rel="stylesheet" type="text/css">
+<link href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css" rel="stylesheet" type="text/css">
+<script type="text/javascript" src="/assets/js/jquery/jquery-1.9.0.js"></script>
+<script type="text/javascript" src="/assets/js/lightbox.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+<script type="text/javascript">
+	$(function(){
+		// 업로드 다이알로그
+		var dialogUpload = $( "#dialog-upload-form" ).dialog({
+			autoOpen: false,
+			height: 280,
+			width: 300,
+			modal: true,
+			buttons: {
+				"업로드": function() {
+					$( "#dialog-upload-form form" ).submit();
+					$( this ).dialog( "close" );
+				},
+				"취소" : function() {
+					$( this ).dialog( "close" );
+				}
+			},
+			close: function() {
+				$( "#dialog-upload-form form" ).get(0).reset();	
+			}
+		});
+
+		$("#upload-image").click( function(event) {
+			event.preventDefault();
+			dialogUpload.dialog( "open" );
+		});
+	});
+</script>	
+</head>
+<body>
+	<div id="container">
+		<div id="content">
+			<div id="gallery">
+				<div>
+					<h1>My Photos</h1>
+					<a href="" id="upload-image">이미지 올리기</a>
+				</div>
+				<ul>
+					<% photos.forEach(function(photo, index){ %>
+						<li>
+							<a href="<%=photo.url%>" data-lightbox="h" class="image" style="background-image:url('<%=photo.url%>')">&nbsp;</a>
+							<a href="" class="del-button" title="삭제", data-no='<%=photo.no%>'>삭제</a>
+						</li>
+					<%})%>
+				</ul>
+			</div>
+				<div id="dialog-upload-form" title="이미지 업로드" style="display: none">
+				<p class="validateTips normal">이미지와 간단한 코멘트를 입력해 주세요.</p>
+				<form action="/upload" method="post" enctype="multipart/form-data">
+					<label>코멘트</label> <input type="text" id="input-comments" name="comment" value="">
+					<label>이미지</label> <input type="file" id="input-file" name="photo"> 
+					<input type="submit" tabindex="-1" style="position: absolute; top: -1000px">
+				</form>
+			</div>
+		</div>
+	</div>
+</body>
+</html>
